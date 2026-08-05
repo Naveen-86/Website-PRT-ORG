@@ -2,35 +2,28 @@ pipeline {
     environment {
         DOCKERHUB_CREDS = credentials('f784176f-4468-4d37-8966-056d4ac0bc6b')
     }
-    agent any
+    agent {
+        label 'K-M'
+    }
     stages {
-        stage('Clone Code') {
+        stage('Git') {
             steps {
-                git branch: 'main',
-                    credentialsId: 'github-creds',
-                    url: 'https://github.com/Naveen-86/Website-PRT-ORG'
+                git url: 'https://github.com/Naveen-86/Website-PRT-ORG' branch: 'main'
             }
         }
-        stage('Build Docker Image') {
+        stage('Docker') {
             steps {
-                sh 'docker build -t naveen8698/prt-task .'
+                sh 'sudo docker login -u ${DOCKERHUB_CREDS_USR} -p ${DOCKERHUB_CREDS_PSW}'
+                sh 'sudo docker build . -t naveen8698/prt-task'
+                sh 'sudo docker push naveen8698/prt-task'
             }
         }
-        stage('Docker Login') {
+
+        stage('k8s'){
             steps {
-                sh "docker login -u ${DOCKERHUB_CREDS_USR} -p ${DOCKERHUB_CREDS_PSW}"
-            }
-        }
-        stage('Push Docker Image') {
-            steps {
-                sh 'docker push naveen8698/prt-task'
-            }
-        }
-        stage('Deploy To Kubernetes') {
-            steps {
-                sh 'kubectl apply -f deploy.yaml'
-                sh 'kubectl apply -f service.yaml'
-            }
-        }
+               sh 'kubectl apply -f deploy.yaml'
+               sh 'kubectl apply -f service.yaml'
+         }
+       }
     }
 }
